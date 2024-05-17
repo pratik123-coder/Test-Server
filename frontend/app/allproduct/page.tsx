@@ -10,34 +10,50 @@ interface Product {
   availability: string;
 }
 
-const AllProductsPage: React.FC = () => {
+const AllProducts: React.FC = () => {
   const [companyName, setCompanyName] = useState<string>('');
   const [productName, setProductName] = useState<string>('');
   const [top, setTop] = useState<string>('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [searchTriggered , setSearchTriggered] = useState<boolean>(false);
 
   const fetchData = async () => {
     try {
-
-      const url = `http://localhost:8000/test/companies/${companyName}/categories/${productName}/products?top=${top}&minPrice=${minPrice}&maxPrice=${maxPrice}`;
-      
-      const response = await fetch(url);
-      
+      const url = `http://localhost:8000/test/companies/${companyName}/categories/${productName}/products`;
+      const params = {
+        top,
+        minPrice,
+        maxPrice,
+        page: parseInt(top, 10) > 10? page : 1,
+      };
+      const response = await fetch(`${url}?${params}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      
       const data = await response.json();
-      setProducts(data);
+      setProducts(data.products);
+      setTotalPages(Math.ceil(data.totalItems / parseInt(top, 10)));
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
 
   const handleSearch = () => {
+    setPage(1);
+    setSearchTriggered(true);
     fetchData();
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newPage = parseInt(event.target.value, 10);
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      fetchData();
+    }
   };
 
   return (
@@ -91,6 +107,19 @@ const AllProductsPage: React.FC = () => {
             <Button variant="contained" onClick={handleSearch}>Search</Button>
           </Grid>
         </Grid>
+        {searchTriggered && top && parseInt(top, 10) > 10 && (
+          <Grid item xs={12} sx={{ mb: 2 }}>
+            <Typography variant="body1" component="div">
+              Page {page} of {totalPages}
+            </Typography>
+            <TextField
+              type="number"
+              value={page}
+              onChange={handlePageChange}
+              inputProps={{ min: 1, max: totalPages }}
+            />
+          </Grid>
+        )}
         <Grid container spacing={3}>
           {products.map((product, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
@@ -119,6 +148,6 @@ const AllProductsPage: React.FC = () => {
       </Container>
     </div>
   );
-};
+}
 
-export default AllProductsPage;
+export default AllProducts;

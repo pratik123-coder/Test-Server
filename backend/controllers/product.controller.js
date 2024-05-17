@@ -33,10 +33,11 @@ const getToken = async (req, res) => {
     try {
         
         const { companyname, categoryname } = req.params;
-        const { top, minPrice, maxPrice } = req.query;
+        const { top, minPrice, maxPrice, page } = req.query;
 
-        // const accessToken = fetchToken(clientInfo) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiZXhwIjoxNzE1MTUyMzU2LCJpYXQiOjE3MTUxNTIwNTYsImlzcyI6IkFmZm9yZG1lZCIsImp0aSI6IjhlMWNkN2YzLWNmZmUtNDY3Zi05NGNhLTRkMTkwYjQ5NmQzZCIsInN1YiI6IjIxMDU2MzlAa2lpdC5hYy5pbiJ9LCJjb21wYW55TmFtZSI6ImdvTWFydCIsImNsaWVudElEIjoiOGUxY2Q3ZjMtY2ZmZS00NjdmLTk0Y2EtNGQxOTBiNDk2ZDNkIiwiY2xpZW50U2VjcmV0IjoiTGxQeU1xYUhnU3dsSkZqbyIsIm93bmVyTmFtZSI6IlByYXRpayBNb2hhbnR5Iiwib3duZXJFbWFpbCI6IjIxMDU2MzlAa2lpdC5hYy5pbiIsInJvbGxObyI6IjIxMDU2MzkifQ.rnq9JUL31IjcLbhidoHTglMoCcIDioyDx1WTicJKLH4";
-        const accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiZXhwIjoxNzE1MTUyMzU2LCJpYXQiOjE3MTUxNTIwNTYsImlzcyI6IkFmZm9yZG1lZCIsImp0aSI6IjhlMWNkN2YzLWNmZmUtNDY3Zi05NGNhLTRkMTkwYjQ5NmQzZCIsInN1YiI6IjIxMDU2MzlAa2lpdC5hYy5pbiJ9LCJjb21wYW55TmFtZSI6ImdvTWFydCIsImNsaWVudElEIjoiOGUxY2Q3ZjMtY2ZmZS00NjdmLTk0Y2EtNGQxOTBiNDk2ZDNkIiwiY2xpZW50U2VjcmV0IjoiTGxQeU1xYUhnU3dsSkZqbyIsIm93bmVyTmFtZSI6IlByYXRpayBNb2hhbnR5Iiwib3duZXJFbWFpbCI6IjIxMDU2MzlAa2lpdC5hYy5pbiIsInJvbGxObyI6IjIxMDU2MzkifQ.rnq9JUL31IjcLbhidoHTglMoCcIDioyDx1WTicJKLH4";
+        const access_token = await fetchToken(clientInfo);
+        
+        
 
         const response = await axios.get(`http://20.244.56.144/test/companies/${companyname}/categories/${categoryname}/products`, {
             params: {
@@ -45,11 +46,22 @@ const getToken = async (req, res) => {
                 maxPrice: maxPrice
             },
             headers: {
-                Authorization: `Bearer ${accessToken}`
+                Authorization: `Bearer ${access_token}`
             }
         });
-
-        res.json(response.data);
+        if (top > 10) {
+            const page = parseInt(req.query.page) || 1; 
+            const startIdx = (page - 1) * top;
+            const endIdx = Math.min(startIdx + top, response.data.length); // To make sure it doesn't exceed the length
+            const paginatedProducts = response.data.slice(startIdx, endIdx);
+            res.json({
+              currentPage: page,
+              pageSize: top,
+              products: paginatedProducts
+            });
+          } else {
+            res.json(response.data);
+          }
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ error: 'Internal Server Error' });
